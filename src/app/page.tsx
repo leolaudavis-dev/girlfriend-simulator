@@ -11,6 +11,7 @@ const AUDIO_VIDEO_ID = "t4_5P_sWGyA";
 
 interface YTPlayer {
   playVideo: () => void;
+  pauseVideo: () => void;
 }
 
 declare global {
@@ -149,10 +150,15 @@ function PixelHeart() {
 
 type FlyPhase = "walk" | "swat" | "squished";
 
-function Fly() {
+function Fly({ paused }: { paused: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(paused);
   const [phase, setPhase] = useState<FlyPhase>("walk");
   const [swatPos, setSwatPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -165,6 +171,7 @@ function Fly() {
     let phaseStart = 0;
     let hasChased = false;
     let raf = 0;
+    let lastTick = performance.now();
 
     const STEP_MS = 75;
     const STEP_DIST = 4;
@@ -203,6 +210,16 @@ function Fly() {
     }
 
     function tick(now: number) {
+      if (pausedRef.current) {
+        const delta = now - lastTick;
+        lastTick = now;
+        phaseStart += delta;
+        lastStepTime += delta;
+        lastMoveTime += delta;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      lastTick = now;
       if (phaseLocal === "walk") {
         const dx = target.x - pos.x;
         const dy = target.y - pos.y;
@@ -869,9 +886,24 @@ const WEBPICS = [
   "yabujin.jpg",
 ];
 
+const STICKERS = [
+  { src: "bootstick.png", label: "$3.00" },
+  { src: "girlfriendmommy.png", label: "$3.00" },
+  { src: "ivant.png", label: "$3.00" },
+  { src: "lovemylife.png", label: "$3.00" },
+  { src: "gfsim.png", label: "$3.00" },
+  { src: "prescription-pop.png", label: "$3.00" },
+  { src: "boppers4.png", label: "$3.00" },
+  { src: "knobodyknowsfr.png", label: "$3.00" },
+  { src: "myp.png", label: "$3.00" },
+  { src: "kissyourselfb.jpg", label: "preorder" },
+];
+
 function AboutPage({ onClose }: { onClose: () => void }) {
-  const [phase, setPhase] = useState<"logo" | "goddess" | "white">("logo");
-  const [engulfing, setEngulfing] = useState(false);
+  const [phase, setPhase] = useState<
+    "logo" | "goddess" | "white" | "merch"
+  >("logo");
+  const [engulfingIdx, setEngulfingIdx] = useState<number | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
@@ -879,9 +911,9 @@ function AboutPage({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, []);
 
-  function openFolder() {
-    setEngulfing(true);
-    setTimeout(() => setPhase("white"), 750);
+  function openFolder(idx: number) {
+    setEngulfingIdx(idx);
+    setTimeout(() => setPhase(idx === 1 ? "merch" : "white"), 750);
   }
 
   return (
@@ -916,9 +948,28 @@ function AboutPage({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             className={`${styles.aboutFolder} ${
-              engulfing ? styles.aboutFolderEngulf : ""
+              engulfingIdx === 0 ? styles.aboutFolderEngulf : ""
             }`}
-            onClick={openFolder}
+            onClick={() => openFolder(0)}
+            aria-label="Open folder"
+          >
+            <Image
+              src="/folder8bit.png"
+              alt=""
+              width={2100}
+              height={1500}
+              sizes="160px"
+              className={styles.aboutFolderImg}
+            />
+          </button>
+          <button
+            type="button"
+            className={`${styles.aboutFolder} ${styles.aboutFolderAbove} ${
+              engulfingIdx === 1
+                ? `${styles.aboutFolderEngulf} ${styles.aboutFolderEngulfDark}`
+                : ""
+            }`}
+            onClick={() => openFolder(1)}
             aria-label="Open folder"
           >
             <Image
@@ -940,7 +991,7 @@ function AboutPage({ onClose }: { onClose: () => void }) {
                 key={name}
                 type="button"
                 className={styles.whiteCell}
-                onClick={() => setLightbox(name)}
+                onClick={() => setLightbox(`/webpics/${name}`)}
               >
                 <Image
                   src={`/webpics/${name}`}
@@ -955,6 +1006,46 @@ function AboutPage({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+      {phase === "merch" && (
+        <div className={styles.aboutMerch}>
+          <Image
+            src="/merch.png"
+            alt="GFSIM Merch"
+            width={2100}
+            height={575}
+            sizes="100vw"
+            className={styles.aboutMerchBanner}
+            priority
+          />
+          <div className={styles.venmoBanner}>
+            <div className={styles.venmoScroll}>
+              {Array.from({ length: 16 }).map((_, i) => (
+                <span key={i}>venmo:gfsim</span>
+              ))}
+            </div>
+          </div>
+          <div className={styles.merchGrid}>
+            {STICKERS.map((item) => (
+              <div key={item.src} className={styles.merchItem}>
+                <button
+                  type="button"
+                  className={styles.merchCell}
+                  onClick={() => setLightbox(`/stickers/${item.src}`)}
+                >
+                  <Image
+                    src={`/stickers/${item.src}`}
+                    alt=""
+                    fill
+                    sizes="25vw"
+                    className={styles.merchCellImg}
+                  />
+                </button>
+                <p className={styles.merchPrice}>{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {lightbox && (
         <button
           type="button"
@@ -963,7 +1054,7 @@ function AboutPage({ onClose }: { onClose: () => void }) {
           aria-label="Close image"
         >
           <Image
-            src={`/webpics/${lightbox}`}
+            src={lightbox}
             alt=""
             fill
             sizes="100vw"
@@ -1130,6 +1221,14 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    if (derpOpen) {
+      playerRef.current?.pauseVideo();
+    } else if (wantsPlayRef.current) {
+      playerRef.current?.playVideo();
+    }
+  }, [derpOpen]);
+
   function handleClick() {
     setStage("envelope");
     setTimeout(() => setStage("open"), 700);
@@ -1212,7 +1311,7 @@ export default function Home() {
       />
       {aboutOpen && <AboutPage onClose={() => setAboutOpen(false)} />}
       {derpOpen && <DerpPage onClose={() => setDerpOpen(false)} />}
-      <Fly />
+      <Fly paused={derpOpen} />
     </main>
   );
 }
