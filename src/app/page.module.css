@@ -17,6 +17,102 @@
   color: inherit;
   cursor: pointer;
   letter-spacing: 0.05em;
+  position: relative;
+  z-index: 600;
+}
+
+.kodakFlash {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  animation: kodakFlashIn 0.08s steps(2, end) both;
+}
+
+.glitterContainer {
+  position: fixed;
+  inset: 0;
+  z-index: 15000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pageTransition {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  background: #000000;
+  overflow: hidden;
+  opacity: 1;
+  padding: 0;
+  margin: 0;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 0.7s ease;
+}
+
+.pageTransitionFading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pageTransitionVideo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78vh);
+  height: max(56.25vw, 100vh);
+  transform: translate(-50%, -50%);
+  border: none;
+  pointer-events: none;
+}
+
+.glitterParticle {
+  position: absolute;
+  background: url("/glitter-star.png") center / contain no-repeat;
+  pointer-events: none;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 0 6px rgba(255, 140, 220, 0.7));
+  animation-name: glitterFall;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes glitterFall {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--rot-start)) scale(0.35);
+    opacity: 0;
+  }
+  12% {
+    transform: translate(-50%, -50%) rotate(var(--rot-start)) scale(1.15);
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+        calc(-50% + var(--drift-x)),
+        calc(-50% + var(--fall-y))
+      )
+      rotate(var(--rot-end)) scale(0.55);
+    opacity: 0;
+  }
+}
+
+.kodakFlashImg {
+  object-fit: cover;
+}
+
+@keyframes kodakFlashIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .homeButton:hover {
@@ -328,6 +424,21 @@
   image-rendering: pixelated;
 }
 
+.aboutFolderLabel {
+  display: block;
+  margin-top: -1.1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-shadow:
+    1px 1px 0 #000000,
+    -1px 1px 0 #000000,
+    1px -1px 0 #000000,
+    -1px -1px 0 #000000;
+}
+
 .aboutFolderEngulf {
   z-index: 5;
   background: #ffffff;
@@ -525,6 +636,13 @@
   object-fit: cover;
 }
 
+.derpNegativeFlash {
+  object-fit: cover;
+  filter: invert(1) hue-rotate(180deg) contrast(1.15);
+  z-index: 7;
+  pointer-events: none;
+}
+
 .derpCode {
   position: absolute;
   inset: 0;
@@ -589,7 +707,7 @@
   position: absolute;
   top: 1.5rem;
   left: 1.5rem;
-  z-index: 2;
+  z-index: 8;
   padding: 8px 16px;
   border: 2px solid #18d615;
   background: #000000;
@@ -613,10 +731,287 @@
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  z-index: 4;
+  z-index: 8;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+}
+
+.wordPage {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: #000000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: wordPageIn 0.35s ease both;
+}
+
+@keyframes wordPageIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.wordPageContent {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 1.5rem;
+  opacity: 0;
+  transition: opacity 0.6s ease 0.9s;
+  pointer-events: none;
+}
+
+.wordPageSettled .wordPageContent {
+  opacity: 1;
+}
+
+.wordPageHeading {
+  margin: 0 0 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #18d615;
+  text-shadow:
+    0 0 6px rgba(24, 214, 21, 1),
+    0 0 18px rgba(24, 214, 21, 0.85),
+    0 0 38px rgba(24, 214, 21, 0.55);
+}
+
+.wordPageBody {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  color: #18d615;
+  text-shadow:
+    0 0 4px rgba(24, 214, 21, 0.9),
+    0 0 12px rgba(24, 214, 21, 0.5);
+}
+
+.wordPageBack {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 2;
+  padding: 8px 16px;
+  border: 2px solid #18d615;
+  background: #000000;
+  color: #18d615;
+  font: inherit;
+  font-size: 1rem;
+  text-shadow:
+    0 0 3px rgba(24, 214, 21, 1),
+    0 0 8px rgba(24, 214, 21, 1),
+    0 0 18px rgba(24, 214, 21, 0.9),
+    0 0 34px rgba(24, 214, 21, 0.7);
+  cursor: pointer;
+}
+
+.wordPageBack:hover {
+  background: #0a2a08;
+}
+
+.lambPage {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  background: #000000;
+  animation: lambPageIn 0.4s ease both;
+  isolation: isolate;
+}
+
+@keyframes lambPageIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.lambBgWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.lambBg {
+  object-fit: cover;
+  animation: lambBgIn 0.7s ease 0.1s both;
+}
+
+@keyframes lambBgIn {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.lambTransition {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: lambHueShift 22s linear infinite;
+  transition: opacity 0.9s ease;
+}
+
+.lambTransitionGone {
+  opacity: 0;
+}
+
+@keyframes lambHueShift {
+  from {
+    filter: hue-rotate(0deg) saturate(1.2);
+  }
+  to {
+    filter: hue-rotate(360deg) saturate(1.2);
+  }
+}
+
+.lambBlobs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.lambBlob {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  filter: blur(40px);
+  mix-blend-mode: screen;
+  animation-name: lambBlobDrift;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  animation-direction: alternate;
+}
+
+@keyframes lambBlobDrift {
+  0% {
+    transform: translate(-50%, -50%) translate3d(-12vw, -8vh, 0) scale(0.8);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate3d(14vw, 10vh, 0) scale(1.3);
+  }
+}
+
+.lambField {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.lambTile {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(var(--rot)) scale(1);
+  overflow: hidden;
+  filter:
+    hue-rotate(var(--hue))
+    saturate(var(--sat))
+    contrast(var(--contrast))
+    brightness(var(--bright))
+    blur(var(--blur))
+    invert(var(--invert));
+  animation-name: lambPulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: transform;
+}
+
+@keyframes lambPulse {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.78)
+      skew(-3deg, 2deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(calc(var(--rot) + 44deg))
+      scale(1.22) skew(4deg, -3deg);
+  }
+}
+
+.lambImg {
+  object-fit: cover;
+  transform-origin: center;
+  animation: lambSpin var(--spin-dur) linear infinite;
+  animation-direction: var(--spin-dir);
+}
+
+@keyframes lambSpin {
+  from {
+    transform: scaleX(var(--flip)) rotate(0deg);
+  }
+  to {
+    transform: scaleX(var(--flip)) rotate(360deg);
+  }
+}
+
+.lambNoise {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+}
+
+.wordBall {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transition: opacity 0.6s ease 0.9s;
+}
+
+.wordPageSettled .wordBall {
+  opacity: 0.45;
+}
+
+.wordBallWord {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%) translate3d(var(--tilt-x), var(--tilt-y), 0)
+    rotate(0deg) scale(0.2);
+  opacity: 0;
+  color: #18d615;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--size);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow:
+    0 0 4px rgba(24, 214, 21, 0.95),
+    0 0 10px rgba(24, 214, 21, 0.8),
+    0 0 22px rgba(24, 214, 21, 0.55),
+    0 0 38px rgba(24, 214, 21, 0.35);
+  transition:
+    transform 0.95s cubic-bezier(0.34, 1.3, 0.5, 1),
+    opacity 0.5s ease;
+  transition-delay: var(--delay);
+}
+
+.wordBallOpen .wordBallWord {
+  transform: translate(-50%, -50%) translate3d(var(--x), var(--y), 0)
+    rotate(var(--rot)) scale(1);
+  opacity: 1;
 }
 
 .derpMenuTrigger,

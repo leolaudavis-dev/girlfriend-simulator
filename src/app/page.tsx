@@ -150,15 +150,82 @@ function PixelHeart() {
 
 type FlyPhase = "walk" | "swat" | "squished";
 
-function Fly({ paused }: { paused: boolean }) {
+function Fly({
+  paused,
+  onPhaseChange,
+}: {
+  paused: boolean;
+  onPhaseChange?: (phase: FlyPhase) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(paused);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const slapBufferRef = useRef<AudioBuffer | null>(null);
   const [phase, setPhase] = useState<FlyPhase>("walk");
   const [swatPos, setSwatPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
+
+  function ensureCtx(): AudioContext | null {
+    if (!audioCtxRef.current) {
+      const Ctor =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctor) return null;
+      audioCtxRef.current = new Ctor();
+    }
+    return audioCtxRef.current;
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSlap() {
+      const ctx = ensureCtx();
+      if (!ctx) return;
+      try {
+        const res = await fetch("/slap.wav");
+        const arr = await res.arrayBuffer();
+        const buf = await ctx.decodeAudioData(arr);
+        if (!cancelled) slapBufferRef.current = buf;
+      } catch {
+        // ignore — fly will just be silent
+      }
+    }
+
+    function unlock() {
+      ensureCtx();
+      audioCtxRef.current?.resume().catch(() => {});
+      if (!slapBufferRef.current) loadSlap();
+    }
+
+    loadSlap();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  function playSmack() {
+    const ctx = ensureCtx();
+    const buf = slapBufferRef.current;
+    if (!ctx || !buf) return;
+    ctx.resume().catch(() => {});
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start();
+  }
 
   useEffect(() => {
     const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -247,6 +314,7 @@ function Fly({ paused }: { paused: boolean }) {
           phaseLocal = "squished";
           phaseStart = now;
           setPhase("squished");
+          playSmack();
         }
       } else if (phaseLocal === "squished") {
         if (now - phaseStart >= SQUISH_MS) {
@@ -788,6 +856,166 @@ function LightSwitch({
   );
 }
 
+const TRANSITION_VIDEO_ID = "aUrkWgakn7U";
+const TRANSITION_RANGE_SEC = 90;
+
+function PageTransition({ onDone }: { onDone?: () => void }) {
+  const [segment] = useState(() => ({
+    start: Math.floor(Math.random() * TRANSITION_RANGE_SEC),
+  }));
+  const [fading, setFading] = useState(false);
+  const [mounted, setMounted] = useState(true);
+  const onDoneRef = useRef(onDone);
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
+
+  function handleDismiss() {
+    if (fading) return;
+    setFading(true);
+    window.setTimeout(() => {
+      setMounted(false);
+      onDoneRef.current?.();
+    }, 700);
+  }
+
+  if (!mounted) return null;
+
+  const { start } = segment;
+  const src =
+    `https://www.youtube.com/embed/${TRANSITION_VIDEO_ID}` +
+    `?autoplay=1&mute=1&controls=0&disablekb=1&modestbranding=1&rel=0` +
+    `&playsinline=1&loop=1&start=${start}` +
+    `&playlist=${TRANSITION_VIDEO_ID}`;
+
+  return (
+    <button
+      type="button"
+      className={`${styles.pageTransition} ${
+        fading ? styles.pageTransitionFading : ""
+      }`}
+      onClick={handleDismiss}
+      aria-label="Close video"
+    >
+      <iframe
+        className={styles.pageTransitionVideo}
+        src={src}
+        title="transition"
+        allow="autoplay; encrypted-media"
+        loading="eager"
+      />
+    </button>
+  );
+}
+
+function GlitterTrail() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let lastSpawn = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let hasLast = false;
+
+    function onMove(e: PointerEvent) {
+      const now = performance.now();
+      const dx = hasLast ? e.clientX - lastX : 0;
+      const dy = hasLast ? e.clientY - lastY : 0;
+      const moved = Math.hypot(dx, dy);
+      lastX = e.clientX;
+      lastY = e.clientY;
+      hasLast = true;
+
+      // throttle: spawn at most every 35ms, and only if moved enough
+      if (now - lastSpawn < 35 || moved < 4) return;
+      lastSpawn = now;
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      // small chance to spawn a double burst
+      const count = Math.random() < 0.25 ? 2 : 1;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement("div");
+        el.className = styles.glitterParticle;
+        const size = 12 + Math.random() * 22;
+        const offsetX = (Math.random() - 0.5) * 18;
+        const offsetY = (Math.random() - 0.5) * 18;
+        const drift = (Math.random() - 0.5) * 80;
+        const fall = 30 + Math.random() * 60;
+        const rotStart = Math.random() * 360;
+        const rotEnd = rotStart + (Math.random() - 0.5) * 540;
+        const dur = 1100 + Math.random() * 700;
+        el.style.left = `${e.clientX + offsetX}px`;
+        el.style.top = `${e.clientY + offsetY}px`;
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.animationDuration = `${dur}ms`;
+        el.style.setProperty("--drift-x", `${drift}px`);
+        el.style.setProperty("--fall-y", `${fall}px`);
+        el.style.setProperty("--rot-start", `${rotStart}deg`);
+        el.style.setProperty("--rot-end", `${rotEnd}deg`);
+        container.appendChild(el);
+        el.addEventListener(
+          "animationend",
+          () => el.remove(),
+          { once: true },
+        );
+      }
+    }
+
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
+
+  return (
+    <div ref={containerRef} className={styles.glitterContainer} aria-hidden />
+  );
+}
+
+function KodakFlash() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    let showTimer = 0;
+    let hideTimer = 0;
+
+    function scheduleShow() {
+      const delay = 6000 + Math.random() * 18000;
+      showTimer = window.setTimeout(() => {
+        setVisible(true);
+        const duration = 350 + Math.random() * 1400;
+        hideTimer = window.setTimeout(() => {
+          setVisible(false);
+          scheduleShow();
+        }, duration);
+      }, delay);
+    }
+
+    scheduleShow();
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, []);
+
+  if (!visible) return null;
+  return (
+    <div className={styles.kodakFlash} aria-hidden>
+      <Image
+        src="/myname.png"
+        alt=""
+        fill
+        sizes="100vw"
+        className={styles.kodakFlashImg}
+        priority
+        unoptimized
+      />
+    </div>
+  );
+}
+
 function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
@@ -849,6 +1077,8 @@ function BloodScene() {
 
 const WEBPICS = [
   "aboutme.jpg",
+  "amateurhour12.jpg",
+  "artverb.png",
   "ben.jpg",
   "birthday.jpg",
   "cliffhangers.jpg",
@@ -857,13 +1087,19 @@ const WEBPICS = [
   "distoredmovie.png",
   "distortedmovie2.png",
   "distortion-field.jpg",
+  "fantasia-vampire.png",
   "fullforce.jpg",
   "gayscience.jpg",
   "gfsim.png",
   "gfsimlogo.png",
   "goddess.png",
+  "halftonesanctuary.png",
+  "halloween.jpg",
+  "iamlikewho.png",
   "img_5927.jpg",
+  "img_6759.jpg",
   "itfeelslike.jpg",
+  "iwanna.jpg",
   "johnnyfans.jpg",
   "kissyourselfb.jpg",
   "kittens.png",
@@ -875,11 +1111,13 @@ const WEBPICS = [
   "milers.png",
   "morelia.jpg",
   "mylifeis.jpg",
+  "myname.png",
   "myp.png",
   "nobodyknows.jpg",
   "normiecorps.jpg",
   "p-lezgetlucky-165.jpg",
   "racks.webp",
+  "smile.jpg",
   "sweetpwuss.jpg",
   "synth.jpg",
   "thotpaper.png",
@@ -896,6 +1134,7 @@ const STICKERS = [
   { src: "boppers4.png", label: "$3.00" },
   { src: "knobodyknowsfr.png", label: "$3.00" },
   { src: "myp.png", label: "$3.00" },
+  { src: "gfsimlogo.png", label: "$3.00" },
   { src: "kissyourselfb.jpg", label: "preorder" },
 ];
 
@@ -951,7 +1190,7 @@ function AboutPage({ onClose }: { onClose: () => void }) {
               engulfingIdx === 0 ? styles.aboutFolderEngulf : ""
             }`}
             onClick={() => openFolder(0)}
-            aria-label="Open folder"
+            aria-label="Open taxes folder"
           >
             <Image
               src="/folder8bit.png"
@@ -961,6 +1200,7 @@ function AboutPage({ onClose }: { onClose: () => void }) {
               sizes="160px"
               className={styles.aboutFolderImg}
             />
+            <span className={styles.aboutFolderLabel}>taxes</span>
           </button>
           <button
             type="button"
@@ -970,7 +1210,7 @@ function AboutPage({ onClose }: { onClose: () => void }) {
                 : ""
             }`}
             onClick={() => openFolder(1)}
-            aria-label="Open folder"
+            aria-label="Open assets folder"
           >
             <Image
               src="/folder8bit.png"
@@ -980,6 +1220,7 @@ function AboutPage({ onClose }: { onClose: () => void }) {
               sizes="160px"
               className={styles.aboutFolderImg}
             />
+            <span className={styles.aboutFolderLabel}>assets</span>
           </button>
         </>
       )}
@@ -1063,7 +1304,18 @@ function AboutPage({ onClose }: { onClose: () => void }) {
           />
         </button>
       )}
-      <button type="button" className={styles.aboutClose} onClick={onClose}>
+      <button
+        type="button"
+        className={styles.aboutClose}
+        onClick={() => {
+          if (phase === "merch" || phase === "white") {
+            setEngulfingIdx(null);
+            setPhase("goddess");
+          } else {
+            onClose();
+          }
+        }}
+      >
         ← back
       </button>
     </div>
@@ -1094,18 +1346,329 @@ const CODE_LINES = [
   "cause you know i can't bare the shame.",
 ];
 
-const DERP_MENU_ITEMS = ["option 1", "option 2", "option 3", "option 4"];
+const DERP_MENU_ITEMS = ["option 1", "shrek", "option 3", "option 4"];
 
-function DerpPage({ onClose }: { onClose: () => void }) {
-  const [phase, setPhase] = useState<"image" | "code">("image");
+const WORD_BALL_WORDS = [
+  "love",
+  "life",
+  "dream",
+  "world",
+  "brighter",
+  "afraid",
+  "alive",
+  "everyone",
+  "leaves",
+  "dies",
+  "waiting",
+  "next",
+  "best",
+  "thing",
+  "wear",
+  "down",
+  "paradise",
+  "picking",
+  "sides",
+  "wallets",
+  "full",
+  "force",
+  "save",
+  "build",
+  "tower",
+  "kick",
+  "myself",
+  "burn",
+  "bridge",
+  "goodbye",
+  "blame",
+  "shame",
+  "moment",
+  "living",
+  "stay",
+  "getting",
+  "better",
+  "i love",
+  "i'm",
+  "me",
+  "you",
+  "bare",
+];
+
+const WORD_BALL_LAYOUT = WORD_BALL_WORDS.map((word, i) => {
+  const angle = pseudoRandom(i * 1.7 + 0.5) * Math.PI * 2;
+  const radius = 50 + pseudoRandom(i * 3.1 + 1.2) * 280;
+  return {
+    word,
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+    rot: (pseudoRandom(i * 4.3 + 2.7) - 0.5) * 60,
+    size: 1 + pseudoRandom(i * 5.5 + 3.4) * 2,
+    delay: pseudoRandom(i * 7.1 + 4.2) * 0.45,
+    tiltX: (pseudoRandom(i * 8.9 + 5.6) - 0.5) * 30,
+    tiltY: (pseudoRandom(i * 11.3 + 6.1) - 0.5) * 30,
+  };
+});
+
+function WordPage({ onBack }: { onBack: () => void }) {
+  const [stage, setStage] = useState<"closed" | "open" | "settled">("closed");
+
+  useEffect(() => {
+    const r1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setStage("open"));
+    });
+    const t = window.setTimeout(() => setStage("settled"), 1500);
+    return () => {
+      cancelAnimationFrame(r1);
+      clearTimeout(t);
+    };
+  }, []);
+
+  return (
+    <div
+      className={`${styles.wordPage} ${
+        stage !== "closed" ? styles.wordBallOpen : ""
+      } ${stage === "settled" ? styles.wordPageSettled : ""}`}
+    >
+      <div className={styles.wordBall} aria-hidden>
+        {WORD_BALL_LAYOUT.map((item, i) => (
+          <span
+            key={i}
+            className={styles.wordBallWord}
+            style={
+              {
+                "--x": `${item.x}px`,
+                "--y": `${item.y}px`,
+                "--rot": `${item.rot}deg`,
+                "--size": `${item.size}rem`,
+                "--delay": `${item.delay}s`,
+                "--tilt-x": `${item.tiltX}px`,
+                "--tilt-y": `${item.tiltY}px`,
+              } as React.CSSProperties
+            }
+          >
+            {item.word}
+          </span>
+        ))}
+      </div>
+      <div className={styles.wordPageContent}>
+        <h2 className={styles.wordPageHeading}>untitled</h2>
+        <p className={styles.wordPageBody}>
+          placeholder — content goes here
+        </p>
+      </div>
+      <button
+        type="button"
+        className={styles.wordPageBack}
+        onClick={onBack}
+      >
+        ← back
+      </button>
+    </div>
+  );
+}
+
+const LAMB_BLEND_MODES = [
+  "difference",
+  "exclusion",
+  "screen",
+  "multiply",
+  "hard-light",
+  "overlay",
+  "color-dodge",
+] as const;
+
+const LAMB_TILES = Array.from({ length: 14 }, (_, i) => {
+  const blendIdx = Math.floor(
+    pseudoRandom(i * 22.3 + 13.5) * LAMB_BLEND_MODES.length,
+  );
+  return {
+    x: pseudoRandom(i * 1.3 + 0.7) * 100,
+    y: pseudoRandom(i * 2.7 + 1.9) * 100,
+    size: 200 + pseudoRandom(i * 3.5 + 2.1) * 760,
+    rot: pseudoRandom(i * 4.9 + 3.5) * 360,
+    spinDur: 22 + pseudoRandom(i * 7.7 + 5.1) * 70,
+    spinReverse: pseudoRandom(i * 6.1 + 4.3) > 0.5,
+    flip: pseudoRandom(i * 9.1 + 6.4) > 0.5,
+    hue: Math.floor(pseudoRandom(i * 11.3 + 7.2) * 360),
+    sat: 0.5 + pseudoRandom(i * 12.5 + 7.8) * 3.2,
+    contrast: 0.5 + pseudoRandom(i * 14.1 + 8.0) * 2.5,
+    bright: 0.6 + pseudoRandom(i * 16.3 + 9.2) * 1.3,
+    blur:
+      pseudoRandom(i * 18.5 + 10.7) > 0.55
+        ? pseudoRandom(i * 19.7 + 11.4) * 28
+        : 0,
+    invert: pseudoRandom(i * 21.1 + 12.5) > 0.65 ? 1 : 0,
+    pulseDelay: pseudoRandom(i * 13.7 + 8.1) * 6,
+    pulseDur: 6 + pseudoRandom(i * 15.9 + 9.3) * 14,
+    opacity: 0.55 + pseudoRandom(i * 17.1 + 10.4) * 0.45,
+    blend: LAMB_BLEND_MODES[blendIdx],
+  };
+});
+
+const LAMB_BLOBS = Array.from({ length: 5 }, (_, i) => ({
+  x: pseudoRandom(i * 4.7 + 41.3) * 100,
+  y: pseudoRandom(i * 5.9 + 42.7) * 100,
+  size: 320 + pseudoRandom(i * 7.1 + 43.9) * 540,
+  hueA: Math.floor(pseudoRandom(i * 9.3 + 44.5) * 360),
+  hueB: Math.floor(pseudoRandom(i * 11.7 + 45.1) * 360),
+  driftDur: 28 + pseudoRandom(i * 13.9 + 46.3) * 38,
+  driftDelay: pseudoRandom(i * 15.1 + 47.7) * 12,
+}));
+
+function LambPage({ onBack }: { onBack: () => void }) {
+  const [transitioning, setTransitioning] = useState(true);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setTransitioning(false), 2400);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className={styles.lambPage}>
+      <div className={styles.lambBgWrap} aria-hidden>
+        <Image
+          src="/iamlikewho.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className={styles.lambBg}
+          priority
+          unoptimized
+        />
+      </div>
+      <div
+        className={`${styles.lambTransition} ${
+          transitioning ? "" : styles.lambTransitionGone
+        }`}
+        aria-hidden
+      >
+        <div className={styles.lambBlobs}>
+          {LAMB_BLOBS.map((b, i) => (
+            <div
+              key={i}
+              className={styles.lambBlob}
+              style={
+                {
+                  left: `${b.x}%`,
+                  top: `${b.y}%`,
+                  width: `${b.size}px`,
+                  height: `${b.size}px`,
+                  background: `radial-gradient(circle, hsl(${b.hueA} 80% 60% / 0.6) 0%, hsl(${b.hueB} 90% 50% / 0) 70%)`,
+                  animationDuration: `${b.driftDur}s`,
+                  animationDelay: `${b.driftDelay}s`,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </div>
+        <div className={styles.lambField}>
+          {LAMB_TILES.map((t, i) => (
+            <div
+              key={i}
+              className={styles.lambTile}
+              style={
+                {
+                  left: `${t.x}%`,
+                  top: `${t.y}%`,
+                  width: `${t.size}px`,
+                  height: `${t.size}px`,
+                  opacity: t.opacity,
+                  mixBlendMode: t.blend,
+                  animationDelay: `${t.pulseDelay}s`,
+                  animationDuration: `${t.pulseDur}s`,
+                  "--rot": `${t.rot}deg`,
+                  "--flip": t.flip ? "-1" : "1",
+                  "--hue": `${t.hue}deg`,
+                  "--sat": `${t.sat}`,
+                  "--contrast": `${t.contrast}`,
+                  "--bright": `${t.bright}`,
+                  "--blur": `${t.blur}px`,
+                  "--invert": `${t.invert}`,
+                  "--spin-dur": `${t.spinDur}s`,
+                  "--spin-dir": t.spinReverse ? "reverse" : "normal",
+                } as React.CSSProperties
+              }
+            >
+              <Image
+                src="/lambs.jpeg"
+                alt=""
+                fill
+                sizes="80vw"
+                className={styles.lambImg}
+                unoptimized
+              />
+            </div>
+          ))}
+        </div>
+        <div className={styles.lambNoise} />
+      </div>
+      <button
+        type="button"
+        className={styles.wordPageBack}
+        onClick={onBack}
+      >
+        ← back
+      </button>
+    </div>
+  );
+}
+
+function DerpPage({
+  onClose,
+  onPlayTransition,
+}: {
+  onClose: () => void;
+  onPlayTransition: () => void;
+}) {
+  const [phase, setPhase] = useState<
+    "image" | "code" | "wordPage" | "lambPage"
+  >("image");
   const [derpMenuOpen, setDerpMenuOpen] = useState(false);
+  const [negativeFlash, setNegativeFlash] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
+    if (phase !== "image" && phase !== "code") return;
+    let showTimer = 0;
+    let isFlashing = false;
+
+    function scheduleFlash() {
+      const delay = 2500 + Math.random() * 11000;
+      showTimer = window.setTimeout(() => {
+        isFlashing = true;
+        setNegativeFlash(true);
+      }, delay);
+    }
+
+    function onMove() {
+      if (!isFlashing) return;
+      isFlashing = false;
+      setNegativeFlash(false);
+      scheduleFlash();
+    }
+
+    scheduleFlash();
+    window.addEventListener("mousemove", onMove);
+    return () => {
+      clearTimeout(showTimer);
+      window.removeEventListener("mousemove", onMove);
+      setNegativeFlash(false);
+    };
+  }, [phase]);
+
+  useEffect(() => {
     const t = setTimeout(() => setPhase("code"), 1800);
-    audioRef.current?.play().catch(() => {});
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (phase === "image" || phase === "code") {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [phase]);
 
   return (
     <div className={styles.derpPage}>
@@ -1119,6 +1682,16 @@ function DerpPage({ onClose }: { onClose: () => void }) {
         priority
         unoptimized
       />
+      {negativeFlash && (
+        <Image
+          src="/meturning.webp"
+          alt=""
+          fill
+          sizes="100vw"
+          className={styles.derpNegativeFlash}
+          unoptimized
+        />
+      )}
       {phase === "code" && (
         <div className={styles.derpCode}>
           <div className={styles.derpCodeScroll}>
@@ -1164,7 +1737,12 @@ function DerpPage({ onClose }: { onClose: () => void }) {
                 type="button"
                 className={styles.derpMenuItem}
                 role="menuitem"
-                onClick={() => setDerpMenuOpen(false)}
+                onClick={() => {
+                  setDerpMenuOpen(false);
+                  if (label === "option 1") setPhase("wordPage");
+                  if (label === "shrek") setPhase("lambPage");
+                  if (label === "option 3") onPlayTransition();
+                }}
               >
                 {label}
               </button>
@@ -1172,6 +1750,12 @@ function DerpPage({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+      {phase === "wordPage" && (
+        <WordPage onBack={() => setPhase("code")} />
+      )}
+      {phase === "lambPage" && (
+        <LambPage onBack={() => setPhase("code")} />
+      )}
     </div>
   );
 }
@@ -1182,6 +1766,8 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [derpOpen, setDerpOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [flyPhase, setFlyPhase] = useState<FlyPhase>("walk");
+  const [transitionId, setTransitionId] = useState<number | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const playerHostRef = useRef<HTMLDivElement>(null);
   const wantsPlayRef = useRef(false);
@@ -1222,12 +1808,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (derpOpen) {
+    if (!wantsPlayRef.current) return;
+    if (derpOpen || flyPhase === "squished") {
       playerRef.current?.pauseVideo();
-    } else if (wantsPlayRef.current) {
+    } else {
       playerRef.current?.playVideo();
     }
-  }, [derpOpen]);
+  }, [derpOpen, flyPhase]);
 
   function handleClick() {
     setStage("envelope");
@@ -1238,13 +1825,22 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
+      {transitionId !== null && (
+        <PageTransition
+          key={transitionId}
+          onDone={() => setTransitionId(null)}
+        />
+      )}
       <div className={styles.audioPlayer} aria-hidden>
         <div ref={playerHostRef} />
       </div>
       {stage === "closed" && (
-        <button className={styles.homeButton} onClick={handleClick}>
-          Girlfriend Simulator
-        </button>
+        <>
+          <KodakFlash />
+          <button className={styles.homeButton} onClick={handleClick}>
+            Girlfriend Simulator
+          </button>
+        </>
       )}
       {stage !== "closed" && (
         <div
@@ -1310,8 +1906,14 @@ export default function Home() {
         label={lightsOn ? "Turn off the light" : "Turn on the light"}
       />
       {aboutOpen && <AboutPage onClose={() => setAboutOpen(false)} />}
-      {derpOpen && <DerpPage onClose={() => setDerpOpen(false)} />}
-      <Fly paused={derpOpen} />
+      {derpOpen && (
+        <DerpPage
+          onClose={() => setDerpOpen(false)}
+          onPlayTransition={() => setTransitionId(Date.now())}
+        />
+      )}
+      <Fly paused={derpOpen} onPhaseChange={setFlyPhase} />
+      <GlitterTrail />
     </main>
   );
 }
