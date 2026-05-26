@@ -1191,6 +1191,31 @@
   transform: scaleX(-1);
 }
 
+.gfeVideoBeauty {
+  filter: brightness(1.08) contrast(1.04) saturate(1.2) blur(0.7px)
+    hue-rotate(-4deg);
+}
+
+.gfeBeautyGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(255, 230, 240, 0.18) 0%,
+      rgba(255, 200, 220, 0.1) 55%,
+      rgba(255, 120, 180, 0) 100%
+    ),
+    radial-gradient(
+      ellipse at center,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(60, 0, 30, 0.35) 100%
+    );
+  mix-blend-mode: soft-light;
+}
+
 .gfeBadge {
   position: absolute;
   top: 16px;
@@ -1328,4 +1353,130 @@
 
 .gfeClose:hover {
   background: rgba(230, 34, 138, 0.35);
+}
+
+.gfeCountdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  pointer-events: none;
+  font-family: ui-serif, Georgia, serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: clamp(8rem, 28vw, 18rem);
+  color: #ffffff;
+  text-shadow:
+    0 0 16px rgba(230, 34, 138, 0.85),
+    0 0 36px rgba(230, 34, 138, 0.7),
+    0 0 70px rgba(230, 34, 138, 0.5);
+  animation: gfeCountdownPop 1s ease-out both;
+}
+
+@keyframes gfeCountdownPop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+.gfeShotCounter {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid #ff8fc8;
+  border-radius: 4px;
+  color: #ffd5e8;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.gfeFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: #ffffff;
+  pointer-events: none;
+  animation: gfeFlashFade 0.32s ease-out both;
+}
+
+@keyframes gfeFlashFade {
+  0% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.gfeShootButton {
+  padding: 12px 22px;
+  border: 2px solid #ff8fc8;
+  background: #e6228a;
+  color: #ffffff;
+  font: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border-radius: 4px;
+  text-transform: lowercase;
+  font-weight: 600;
+  box-shadow: 0 0 14px rgba(230, 34, 138, 0.55);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.gfeShootButton:hover {
+  background: #ff5aae;
+  transform: translateY(-1px);
+}
+
+.gfeReview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.gfeStripWrap {
+  background: #ffe1ee;
+  padding: 16px;
+  border-radius: 6px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(230, 34, 138, 0.4);
+  transform: rotate(-2deg);
+}
+
+.gfeStripImg {
+  display: block;
+  max-height: 76vh;
+  width: auto;
+  height: auto;
+}
+
+.gfeReviewActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }

@@ -146,7 +146,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             href="/thegirlfriendexperience"
             onClick={() => setMenuOpen(false)}
           >
-            live
+            photobooth
           </Link>
         </div>
       )}
