@@ -1151,3 +1151,181 @@
 .toggleOff {
   transform: translateY(9px);
 }
+
+.gfePage {
+  position: fixed;
+  inset: 0;
+  z-index: 12200;
+  background: radial-gradient(
+    circle at center,
+    #1a0010 0%,
+    #050003 70%,
+    #000000 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: derpFadeIn 0.45s ease both;
+}
+
+.gfeFrame {
+  position: relative;
+  width: min(90vw, 1100px);
+  aspect-ratio: 16 / 9;
+  border: 3px solid #ff8fc8;
+  border-radius: 6px;
+  background: #000000;
+  box-shadow:
+    0 0 24px rgba(230, 34, 138, 0.55),
+    0 0 48px rgba(230, 34, 138, 0.35),
+    inset 0 0 30px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.gfeVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+  transform: scaleX(-1);
+}
+
+.gfeBadge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1.5px solid #ff3030;
+  border-radius: 4px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.gfeBadgeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3030;
+  box-shadow: 0 0 8px #ff3030;
+  animation: gfeBadgePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gfeBadgePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+.gfeOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: #ffd5e8;
+  font: inherit;
+  z-index: 1;
+}
+
+.gfeOverlayTitle {
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  margin: 0;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 12px rgba(230, 34, 138, 0.7);
+}
+
+.gfeOverlayText {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.gfeStartButton {
+  padding: 10px 22px;
+  border: 2px solid #ff8fc8;
+  background: #e6228a;
+  color: #ffffff;
+  font: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border-radius: 4px;
+  text-transform: lowercase;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.gfeStartButton:hover {
+  background: #ff5aae;
+  transform: translateY(-1px);
+}
+
+.gfeError {
+  color: #ff8fa0;
+  text-shadow: 0 0 8px rgba(255, 48, 80, 0.5);
+}
+
+.gfeControls {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 2;
+}
+
+.gfeControlButton {
+  padding: 8px 14px;
+  border: 1.5px solid #ff8fc8;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffd5e8;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border-radius: 4px;
+  text-transform: lowercase;
+}
+
+.gfeControlButton:hover {
+  background: rgba(230, 34, 138, 0.35);
+}
+
+.gfeClose {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 8;
+  padding: 8px 16px;
+  border: 2px solid #ff8fc8;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffd5e8;
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.gfeClose:hover {
+  background: rgba(230, 34, 138, 0.35);
+}

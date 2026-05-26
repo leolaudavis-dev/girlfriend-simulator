@@ -140,6 +140,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
           >
             derp
           </Link>
+          <Link
+            className={styles.dropdownItem}
+            role="menuitem"
+            href="/thegirlfriendexperience"
+            onClick={() => setMenuOpen(false)}
+          >
+            live
+          </Link>
         </div>
       )}
       <LightSwitch
